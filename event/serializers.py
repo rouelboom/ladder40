@@ -1,22 +1,8 @@
 from rest_framework import serializers
-from django.conf import settings as django_settings
 from djoser.conf import settings
 from djoser.serializers import UserCreateSerializer, UserSerializer
 
 from event.models import Event, User
-
-# User = django_settings.AUTH_USER_MODEL
-
-class EventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Event
-        fields = '__all__'
-
-#
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Event
-#         fields = '__all__'
 
 
 class CustomUserSerializer(UserSerializer):
@@ -26,7 +12,7 @@ class CustomUserSerializer(UserSerializer):
             settings.USER_ID_FIELD,
             settings.LOGIN_FIELD,
             'username', 'first_name',
-            'last_name', 'email', 'is_subscribed')
+            'last_name', 'email', 'win_rate')
         extra_kwargs = {
             'first_name': {'required': True},
             'last_name': {'required': True},
@@ -47,3 +33,15 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'last_name': {'required': True},
             'email': {'required': True},
         }
+
+
+class EventSerializer(serializers.ModelSerializer):
+    author = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = Event
+        fields = ('id', 'author', 'creation_date', 'event_date', 'title')
+
+    def update(self, instance, validated_data):
+        instance.opponent = validated_data.pop('opponent')
+        return super().update(instance, validated_data)
