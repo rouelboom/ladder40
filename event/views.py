@@ -16,7 +16,7 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-event_date')
     serializer_class = EventSerializer
 
-    @action(methods=['post', 'put'], detail=True,
+    @action(methods=['post', 'put', 'patch'], detail=True,
             permission_classes=[IsAuthenticated]
             )
     def subscribe(self, request, pk=None):
@@ -27,19 +27,26 @@ class EventViewSet(viewsets.ModelViewSet):
         else:
             if event.opponent is not None:
                 return Response({'error': 'Opponent for event already founded'})
-            # event.opponent = request.user
-            # event.save()
-            data = {
-                'title': event.title,
-                'opponent': request.user
-            }
-            serializer = self.get_serializer(
-                data=data, context={'request': request, 'event': event})
-            serializer.is_valid(raise_exception=True)
-            print(serializer.data)
-            # serializer.update()
+            event.opponent = request.user
+            event.save()
             # send notification to creator
-            return Response('PI BA LA PU KA!')
+            return Response(data={
+                'title': event.title,
+                'author': event.author.username,
+                'opponent': event.opponent.username,
+                'event_date': event.event_date
+            }, status=status.HTTP_200_OK)
+            # serializer = EventSerializer(data={
+            #     'title': event.title,
+            #     'author': event.author,
+            #     'opponent': event.opponent,
+            #     'event_date': event.event_date
+            # })
+            # if not serializer.is_valid():
+            #     print(serializer.errors)
+            #     return Response('PI BA LA PU KA')
+            # else:
+            #     return Response(serializer.data)
 
     @action(methods=['post'], detail=True,
             permission_classes=[IsAuthenticated]

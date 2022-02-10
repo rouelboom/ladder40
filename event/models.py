@@ -20,3 +20,14 @@ class Event(models.Model):
 
     def __str__(self):
         return f'Author {self.author.username}, event: {self.title}'
+
+
+class TelegramUserToPasswordRelation(models.Model):
+    user_id = models.IntegerField()
+    password = models.CharField(max_length=150)
+    # изначально при логине через телеграм login=username (а может быть даже login=user_id),
+    # позже после входа через сайт пользователь сможет создать новый логин пароль
+    username = models.CharField(max_length=150)
+    token = models.CharField(max_length=150, null=True, blank=True)
+    site_access = models.BooleanField(default=False)
+    last_update = models.DateTimeField(null=True, blank=True)
