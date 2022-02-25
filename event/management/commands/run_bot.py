@@ -61,17 +61,18 @@ def login_into_bot(message):
         pass
 
 
-@bot.message_handler(commands=['start'])
-# @bot.message_handler(func=lambda message: 's' in str(message))
+# @bot.message_handler(commands=['start'])
+@bot.message_handler(func=lambda message: 'sta' in str(message))
 def send_welcome(message):
     try:
         user_id = message.from_user.id
-        login_result = interface.login(user_id)
-        if login_result == 'error':
+        token = interface.login(user_id)
+        if token == 'error':
             bot.send_message(message.chat.id, 'BIG PROBLEM WITH AUTH')
             return
         bot.send_message(message.chat.id, (f'Просто здравствуй, {message.from_user.first_name}.\n'
                                            'Просто как дела?'))
+        print(token)
 
     except AttributeError:
         pass
