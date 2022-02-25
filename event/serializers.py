@@ -29,9 +29,9 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'password', 'last_name', 'first_name', 'username'
         )
         extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-            'email': {'required': True},
+            # 'first_name': {'required': True},
+            # 'last_name': {'required': True},
+            # 'email': {'required': True},
         }
 
 
