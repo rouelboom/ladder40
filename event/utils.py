@@ -1,4 +1,6 @@
 import os
+import secrets
+import string
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
@@ -27,3 +29,14 @@ def decrypt(message_to_decrypt):
     decrypto = Fernet(ENCRYPT_KEY.encode())
     decrypted_message = decrypto.decrypt(message_to_decrypt.encode())
     return decrypted_message.decode()
+
+
+def _generate_password() -> str:
+    alphabet = string.ascii_letters + string.digits
+    while True:
+        password = ''.join(secrets.choice(alphabet) for i in range(10))
+        if (any(c.islower() for c in password)
+                and any(c.isupper() for c in password)
+                and sum(c.isdigit() for c in password) >= 3):
+            break
+    return password
