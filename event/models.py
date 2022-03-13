@@ -23,7 +23,7 @@ class Event(models.Model):
 
 
 class TelegramUserToPasswordRelation(models.Model):
-    user_id = models.IntegerField() # telegram user id
+    user_id = models.IntegerField(unique=True)  # telegram user id
     password = models.CharField(max_length=150)
     # изначально при логине через телеграм login=username (а может быть даже login=user_id),
     # позже после входа через сайт пользователь сможет создать новый логин пароль

@@ -2,14 +2,18 @@ import os
 import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
+import requests
 
 import logging
 import telebot
 from telebot import types
 
 from dotenv import load_dotenv
-
 from event import interface
+from event.models import Event
+from event import const
+from TeleDjan_Auth.TeleDjan_Auth import TeleDjanAuth
+from event.models import TelegramUserToPasswordRelation
 
 
 load_dotenv()
@@ -22,43 +26,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
+ENCRYPT_KEY = os.getenv('ENCRYPT_KEY')
 
-
-def check_login(message):
-    user_id = message.from_user.id
-    user_data = {
-        'username': message.from_user.usernam,
-        'user_id': message.from_user.id
-    }
-    user = TelegramUser.objects.filter(user_telega_id=user_id)
-    if user.count() != 0:
-        login_into_bot(message)
-
-
-def login_into_bot(message):
-    # тут мы будем слать запрос
-    try:
-        username = message.from_user.username
-        id = message.from_user.id
-        print(username)
-        current_user = TelegramUser.objects.filter(user_telega_id=id)
-        # now_time = datetime.datetime.now()
-        now_time = timezone.now()
-        if current_user.count() == 0:
-            print(message.from_user)
-            return TelegramUser.objects.create(
-                user_telega_id=id,
-                username=username,
-                first_name=message.from_user.first_name,
-                creation_date=now_time,
-                last_login_date=now_time
-            )
-
-        else:
-            current_user.update(last_login_date=now_time)
-            return current_user
-    except KeyError as e:
-        pass
+auth_master = TeleDjanAuth(TelegramUserToPasswordRelation, const.LOGIN_URL, const.REGISTER_NEW_USER_URL, ENCRYPT_KEY)
+# bot.infinity_polling()
 
 
 # @bot.message_handler(commands=['start'])
@@ -66,7 +37,7 @@ def login_into_bot(message):
 def send_welcome(message):
     try:
         user_id = message.from_user.id
-        token = interface.login(user_id)
+        token = interface.authenticate(user_id)
         if token == 'error':
             bot.send_message(message.chat.id, 'BIG PROBLEM WITH AUTH')
             return
@@ -77,6 +48,26 @@ def send_welcome(message):
     except AttributeError:
         pass
 
+
+@bot.message_handler(commands=['gl'])
+def get_event_list(message):
+    try:
+        print('gl')
+        user_id = message.from_user.id
+        token = interface.authenticate(user_id)
+        if token == 'error':
+            bot.send_message('У вас проблемы с авторизацией. Обратитесь к администратору')
+            return
+        print('after login')
+        # events = Event.objects.all()
+        # возможно стоит сделать декоратор который будет проверять актуальность
+        response = requests.get(const.EVENTS_URL,
+                                headers={'Authorization': f'Token {token}'})
+        print(response.json())
+        print('123321')
+
+    except Exception:
+        pass
 
 @bot.message_handler(commands=['clear_chat'])
 def clear_chat(message):
