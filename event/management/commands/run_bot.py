@@ -37,8 +37,9 @@ auth_master = TeleDjanAuth(TelegramUserToPasswordRelation, const.LOGIN_URL, cons
 def send_welcome(message):
     try:
         user_id = message.from_user.id
-        token = interface.authenticate(user_id)
-        if token == 'error':
+        # token = interface.authenticate(user_id)
+        token = auth_master.authenticate_by_telegram(user_id)
+        if 'error' in token:
             bot.send_message(message.chat.id, 'BIG PROBLEM WITH AUTH')
             return
         bot.send_message(message.chat.id, (f'Просто здравствуй, {message.from_user.first_name}.\n'
@@ -49,25 +50,31 @@ def send_welcome(message):
         pass
 
 
-@bot.message_handler(commands=['gl'])
+@bot.message_handler(commands=['event'])
 def get_event_list(message):
     try:
         print('gl')
         user_id = message.from_user.id
-        token = interface.authenticate(user_id)
-        if token == 'error':
-            bot.send_message('У вас проблемы с авторизацией. Обратитесь к администратору')
+        token = auth_master.authenticate_by_telegram(user_id)
+        if isinstance(token, dict) and 'error' in token:
+            bot.send_message(message.chat.id, 'У вас проблемы с авторизацией. Обратитесь к администратору')
             return
         print('after login')
         # events = Event.objects.all()
         # возможно стоит сделать декоратор который будет проверять актуальность
         response = requests.get(const.EVENTS_URL,
                                 headers={'Authorization': f'Token {token}'})
-        print(response.json())
+        data = response.json()
+        print(data.get('results'))
+        events = data.get('results')
         print('123321')
-
+        bot.send_message(message.chat.id, 'Развлекайся')
+        for event in events:
+            bot.send_message(message.chat.id, f'id {event["id"]}, title { event["title"]}')
+            print(event)
     except Exception:
         pass
+
 
 @bot.message_handler(commands=['clear_chat'])
 def clear_chat(message):
@@ -101,49 +108,49 @@ def unban_handler(message):
     user.update(ban=False)
     bot.send_message(message.chat.id, 'Вы были разблокированы')
 
-
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def default_command(message):
-    # first need to check user to ban\block
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    user = TelegramUser.objects.filter(user_telega_id=user_id)
-    if user.count() != 0:
-        user = login_into_bot(message)
-    if user[0].ban:
-        bot.send_message(chat_id, 'Вам запрещенно общаться с этим ботом')
-        return
-    # print(user.ban)
-    for word in BAD_WORDS:
-        if word in message.text:
-            user.update(ban=True, ban_date=timezone.now())
-            bot.send_message(chat_id, "У нас не ругаются. Вы в бане")
-            return
-
-    for weather_word in WEATHER_WORDS:
-        if weather_word in message.text:
-            text = message.text
-            text_list = text.split(' ')
-            if len(text_list) == 2:
-                for word in text_list:
-                    if word not in WEATHER_WORDS:
-                        result = get_current_meteo_data(word)
-                        if result.get('error'):
-                            bot.send_message(chat_id, f"Что-то пошло не так: {result['error']}'")
-                            break
-                        else:
-                            info_message = f'Погода в городе {result["city"]}:\n' \
-                                           f'Температура {result["temp"]}, {result["description"]}\n' \
-                                           f'Ощущается как {result["feels_like"]}\n' \
-                                           f'Скорость ветра {result["wind_speed"]}м/с\n'
-                            bot.send_message(chat_id, info_message)
-                            break
-
-                break
-        else:
-            bot.send_message(chat_id, ("Кажется хотите узнать погоду?"
-                                       "Укажите город, допустим: 'погода Калуга'"))
-            break
+#
+# @bot.message_handler(func=lambda message: True, content_types=['text'])
+# def default_command(message):
+#     # first need to check user to ban\block
+#     user_id = message.from_user.id
+#     chat_id = message.chat.id
+#     user = TelegramUser.objects.filter(user_telega_id=user_id)
+#     if user.count() != 0:
+#         user = login_into_bot(message)
+#     if user[0].ban:
+#         bot.send_message(chat_id, 'Вам запрещенно общаться с этим ботом')
+#         return
+#     # print(user.ban)
+#     for word in BAD_WORDS:
+#         if word in message.text:
+#             user.update(ban=True, ban_date=timezone.now())
+#             bot.send_message(chat_id, "У нас не ругаются. Вы в бане")
+#             return
+#
+#     for weather_word in WEATHER_WORDS:
+#         if weather_word in message.text:
+#             text = message.text
+#             text_list = text.split(' ')
+#             if len(text_list) == 2:
+#                 for word in text_list:
+#                     if word not in WEATHER_WORDS:
+#                         result = get_current_meteo_data(word)
+#                         if result.get('error'):
+#                             bot.send_message(chat_id, f"Что-то пошло не так: {result['error']}'")
+#                             break
+#                         else:
+#                             info_message = f'Погода в городе {result["city"]}:\n' \
+#                                            f'Температура {result["temp"]}, {result["description"]}\n' \
+#                                            f'Ощущается как {result["feels_like"]}\n' \
+#                                            f'Скорость ветра {result["wind_speed"]}м/с\n'
+#                             bot.send_message(chat_id, info_message)
+#                             break
+#
+#                 break
+#         else:
+#             bot.send_message(chat_id, ("Кажется хотите узнать погоду?"
+#                                        "Укажите город, допустим: 'погода Калуга'"))
+#             break
 
 
 class Command(BaseCommand):

@@ -29,7 +29,7 @@ class TelegramUserToPasswordRelation(models.Model):
     # позже после входа через сайт пользователь сможет создать новый логин пароль
     username = models.CharField(max_length=150)
     token = models.CharField(max_length=150, null=True, blank=True)
-    site_access = models.BooleanField(default=False)
+    site_access = models.BooleanField(null=True, default=False)
     last_update = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
